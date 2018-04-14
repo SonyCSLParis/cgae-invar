@@ -17,7 +17,7 @@ from util import to_numpy, cuda_tensor
 
 
 class C_GAE(nn.Module):
-    def __init__(self, context_length=9, factors=256, mapping=(128, 64)):
+    def __init__(self, kernel_size=(9, 120), factors=256, mapping=(128, 64)):
         """
         Convolutional Gated Autoencoder with two mapping layers for learning
         relative pitch representations from polyphonic sequence data.
@@ -30,11 +30,12 @@ class C_GAE(nn.Module):
         layer
         """
         super(C_GAE, self).__init__()
-        self.context_length = context_length
-        self.conv_x = nn.Conv2d(1, factors, kernel_size=(context_length, 120),
-                                padding=(4, 0), bias=False)
-        self.bias_x = nn.Parameter(torch.zeros(120))
-        self.conv_y = nn.Conv2d(1, factors, kernel_size=(1, 120),
+        assert kernel_size[0] % 2 == 1, "kernel_size[0] has to be an odd number"
+        self.context_length = kernel_size[0]
+        self.conv_x = nn.Conv2d(1, factors, kernel_size=kernel_size,
+                                padding=(kernel_size[0]//2, 0), bias=False)
+        self.bias_x = nn.Parameter(torch.zeros(kernel_size[1]))
+        self.conv_y = nn.Conv2d(1, factors, kernel_size=(1, kernel_size[1]),
                                 padding=(0, 0), bias=False)
         self.conv_m1 = nn.Conv2d(factors, mapping[0], kernel_size=(1, 1),
                                  padding=(0, 0), bias=True)
