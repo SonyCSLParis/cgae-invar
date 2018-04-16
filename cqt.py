@@ -128,6 +128,7 @@ def contrast_normalize(x, axis=1):
 class CQT(data.Dataset):
 
     def __init__(self, filelist, trg_shift=1, block_size=1024,
+                 n_bins=120, bins_per_octave=24, fmin=65.4, hop_length=448,
                  convolutional=True, refresh_cache=False,
                  cache_fn = "cqt_cache.pyc.bz",
                  allow_diff_shapes=False):
@@ -144,6 +145,10 @@ class CQT(data.Dataset):
         """
         self.trg_shift = trg_shift
         self.block_size = block_size
+        self.n_bins = n_bins
+        self.bins_per_octave = bins_per_octave
+        self.fmin = fmin
+        self.hop_length = hop_length
         self.convolutional = convolutional
         self.allow_diff_shapes = allow_diff_shapes
         self.data_cqt = cached(cache_fn, self.files_to_cqt, (filelist,),
@@ -175,9 +180,9 @@ class CQT(data.Dataset):
             print(f"loading file {file}")
             audio = librosa.load(file)
             print(f"transforming {file} to cqt")
-            cqt = librosa.cqt(audio[0], n_bins=120,
-                              bins_per_octave=24,
-                              fmin=65.4, hop_length=448)
+            cqt = librosa.cqt(audio[0], n_bins=self.n_bins,
+                              bins_per_octave=self.bins_per_octave,
+                              fmin=self.fmin, hop_length=self.hop_length)
             cqt = np.transpose(librosa.magphase(cqt)[0])
             cqt = contrast_normalize(cqt)
 

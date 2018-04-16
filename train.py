@@ -22,8 +22,11 @@ from plot import *
 from regularize import lee_loss, l2_loss
 from util import cuda_variable
 
-parser = argparse.ArgumentParser(description='Train a convolutional Gated'
-                                             'Autoencoder on audio data.')
+parser = argparse.ArgumentParser(description='Train a convolutional gated'
+                                             'autoencoder on audio data in '
+                                             'CQT representation to obtain '
+                                             'locally transposition-invariant '
+                                             'features.')
 parser.add_argument('filelist', type=str, default="",
                     help='text file containing a list of audio files for'
                          'training')
@@ -37,18 +40,23 @@ parser.add_argument('--block-size', type=int, default=1024, metavar='N',
                     help='length of one instance in batch (default: 1024)')
 parser.add_argument('--epochs', type=int, default=501, metavar='N',
                     help='number of epochs to train (default: 501)')
-parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
+parser.add_argument('--lr', type=float, default=1e-3, metavar='R',
                     help='learning rate (default: 0.001)')
-parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
-                    help='SGD momentum (default: 0.5)')
+parser.add_argument('--n-bins', type=int, default=120, metavar='B',
+                    help='number of frequency bins for CQT (default: 120)')
+parser.add_argument('--bins-per-oct', type=int, default=24, metavar='B',
+                    help='number of frequency bins per octave for CQT ('
+                         'default: 24)')
+parser.add_argument('--fmin', type=float, default=65.4, metavar='F',
+                    help='minimum frequency for CQT (default: 65.4)')
+parser.add_argument('--hop_length', type=int, default=448, metavar='L',
+                    help='hop length for CQT (default: 448)')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--plot-interval', type=int, default=50, metavar='N',
+parser.add_argument('--plot-interval', type=int, default=500, metavar='I',
                     help='how many epochs to wait before plotting network '
                          'status (default: 50)')
-parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                    help='how many batches to wait before logging training'
-                         'status')
+
 args = parser.parse_args()
 args.cuda = torch.cuda.is_available()
 
@@ -99,6 +107,8 @@ def get_trg_shift_dist():
 
 train_loader = torch.utils.data.DataLoader(
     CQT(files, trg_shift=get_trg_shift_dist(), block_size=args.block_size,
+        n_bins=args.n_bins, bins_per_octave=args.bins_per_oct,
+        fmin=args.fmin, hop_length=args.hop_length,
         convolutional=True, refresh_cache=args.refresh_cache),
     batch_size=args.batch_size, shuffle=True, **kwargs)
 
@@ -110,6 +120,7 @@ def train(epoch):
     :param epoch: the current training epoch
     """
     model.train()
+    losses = []
     for batch_idx, (x, y) in enumerate(train_loader):
         x = cuda_variable(x)
         y = cuda_variable(y)
@@ -118,7 +129,7 @@ def train(epoch):
 
         # transpose input and target, in order to enforce
         # transposition-invariance
-        shift = randint(-60, 60)
+        shift = randint(-args.n_bins//2, args.n_bins//2)
         x = F.dropout(x, .5, training=True)
         x_trans = transp(x, shift)
         y_trans = transp(y, shift)
@@ -134,7 +145,7 @@ def train(epoch):
         l2_reg = l2_loss(model.conv_x.weight) + l2_loss(model.conv_y.weight)
 
         # regularization strengths
-        lee_fact = 1e-5
+        lee_fact = 4e-6
         l2_fact = 0.0
 
         loss = F.mse_loss(y_recon, y_trans) + \
@@ -143,25 +154,26 @@ def train(epoch):
         loss.backward()
         optimizer.step()
 
+        losses.append(loss.data[0])
+
         # restrict to (small) common norm
         model.set_to_norm(0.4)
-        if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(x), len(train_loader.dataset),
-                       100. * batch_idx / len(train_loader), loss.data[0]))
+
+    return losses
 
 
 # Train and plot intermediate results
 
 for epoch in range(1, args.epochs + 1):
-    train(epoch)
+    losses = train(epoch)
+    print('Finished Epoch: {}/{} ({:.0f}%)\tLoss: {:.6f}'.format(
+          epoch, args.epochs+1, 100. * epoch / args.epochs+1, np.mean(losses)))
     if epoch % args.plot_interval == 1:
         for batch_idx, (x, y) in enumerate(train_loader):
             if batch_idx == 0:
                 x = cuda_variable(x)
                 y = cuda_variable(y)
-                if epoch == 1:
-                    plot_data(x, epoch, out_dir)
+                plot_data(y, epoch, out_dir)
                 batch = train_loader.dataset.__getitem__(0)
                 plot_recon(model, x, y, epoch, out_dir)
                 plot_mapping(model, x, y, epoch, out_dir)
