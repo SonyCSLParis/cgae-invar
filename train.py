@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Created on April 13, 2018
 
@@ -36,12 +38,18 @@ parser.add_argument('--refresh-cache', action="store_true", default=False,
                     help='reload and preprocess data')
 parser.add_argument('--batch-size', type=int, default=10, metavar='N',
                     help='input batch size for training (default: 10)')
-parser.add_argument('--block-size', type=int, default=1024, metavar='N',
-                    help='length of one instance in batch (default: 1024)')
 parser.add_argument('--epochs', type=int, default=501, metavar='N',
                     help='number of epochs to train (default: 501)')
 parser.add_argument('--lr', type=float, default=1e-3, metavar='R',
                     help='learning rate (default: 0.001)')
+parser.add_argument('--sparsity-reg', type=float, default=4e-6, metavar='S',
+                    help='sparsity regularization on top-most mapping layer ('
+                         'default: 4e-6)')
+parser.add_argument('--weight-reg', type=float, default=0.0, metavar='S',
+                    help='weight regularization on the input filters ('
+                         'default: 0.0)')
+parser.add_argument('--block-size', type=int, default=1024, metavar='N',
+                    help='length of one instance in batch (default: 1024)')
 parser.add_argument('--n-bins', type=int, default=120, metavar='B',
                     help='number of frequency bins for CQT (default: 120)')
 parser.add_argument('--bins-per-oct', type=int, default=24, metavar='B',
@@ -145,8 +153,8 @@ def train(epoch):
         l2_reg = l2_loss(model.conv_x.weight) + l2_loss(model.conv_y.weight)
 
         # regularization strengths
-        lee_fact = 4e-6
-        l2_fact = 0.0
+        lee_fact = args.sparsity_reg
+        l2_fact = args.weight_reg
 
         loss = F.mse_loss(y_recon, y_trans) + \
                lee_reg * lee_fact + l2_reg * l2_fact

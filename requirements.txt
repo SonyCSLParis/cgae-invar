@@ -1,0 +1,17 @@
+#
+#    Requirements for cgae-invar example implementation
+#
+#    Install Requirements using
+#              conda install --yes --file requirements.txt
+#               ..or
+#              pip install -r requirements.txt
+#
+#
+#    Start training:
+#              python cgae_invar_train.py
+#
+
+librosa
+matplotlib
+Pillow
+numpy
