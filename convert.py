@@ -68,6 +68,8 @@ def save_invariant():
     """
     for batch_idx, (x, y) in enumerate(file_loader):
         filename = os.path.basename(files[batch_idx])
+        filename = filename.strip('\n')
+
         x = cuda_variable(x)
         y = cuda_variable(y)
 
