@@ -2,9 +2,22 @@
 
 # Convolutional Gated Autoencoder for learning transposition-invariant features from audio
 
-PyTorch implementation of the sequential Gated Autoencoder proposed in "Learning Transposition-Invariant Interval Features from Symbolic Music and Audio". The method introduced in the publication uses an n-gram approach. In contrast, this implementation employs convolution in time.
+PyTorch implementation of the sequential Gated Autoencoder proposed in 
 
-Pre-trained model parameters are provided and can be used as described [here](#convert-audio-files-to-invariant-features).
+*Learning Transposition-Invariant Interval Features from Symbolic Music and 
+Audio*<br/>
+Stefan Lattner¹², Maarten Grachten¹, Gerhard Widmer¹, 2018<br/>
+
+*¹Institute for Computational Perception, JKU Linz*<br/> 
+*²Sony CSL Paris*<br/>
+
+The method introduced in the publication uses an n-gram approach. In
+contrast, the implementation provided here employs convolution in time.
+
+Pre-trained model parameters can be used as described [here]
+(#convert-audio-files-to-invariant-features). However, we encourage the user
+to train the model on problem-specific data, and to experiment with different 
+training settings herself.
 
 ### Outline ###
 
