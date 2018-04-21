@@ -204,7 +204,7 @@ class CQT(data.Dataset):
                 max_length = len(cqt)
 
             for i in range(0, len(cqt), self.block_size):
-                if not self.allow_diff_shapes and i + self.block_size is not \
+                if not self.allow_diff_shapes and i + self.block_size > \
                         len(cqt):
                     break
 
