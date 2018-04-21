@@ -69,7 +69,7 @@ parser.add_argument('--hop_length', type=int, default=448, metavar='L',
 
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--plot-interval', type=int, default=500, metavar='I',
+parser.add_argument('--plot-interval', type=int, default=50, metavar='I',
                     help='how many epochs to wait before plotting network '
                          'status (default: 50)')
 parser.add_argument('--refresh-cache', action="store_true", default=False,
