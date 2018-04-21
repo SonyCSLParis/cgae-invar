@@ -51,9 +51,6 @@ class C_GAE(nn.Module):
         m2 = F.tanh(self.conv_m2(m1))
         return m2
 
-    def conv_x_drop(self, x):
-        return F.dropout2d(self.conv_x(x), training=True)
-
     def recon_y_(self, m, x):
         decon_m2 = F.conv_transpose2d(m, self.conv_m2.weight,
                                       bias=self.conv_m1.bias)
