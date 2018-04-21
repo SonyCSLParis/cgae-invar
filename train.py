@@ -34,8 +34,14 @@ parser.add_argument('filelist', type=str, default="",
                          'training')
 parser.add_argument('run_keyword', type=str, default="experiment1",
                     help='keyword used for output path')
-parser.add_argument('--refresh-cache', action="store_true", default=False,
-                    help='reload and preprocess data')
+
+parser.add_argument('--context-length', type=int, default=9, metavar='L',
+                    help='width of input window (default: 9)')
+parser.add_argument('--n-factors', type=int, default=256, metavar='N',
+                    help='size of factor layer (default: 256)')
+parser.add_argument('--n-mapping', type=tuple, default=(128, 64), metavar='N',
+                    help='size of mapping layers (default: (128, 64))')
+
 parser.add_argument('--batch-size', type=int, default=10, metavar='N',
                     help='input batch size for training (default: 10)')
 parser.add_argument('--epochs', type=int, default=501, metavar='N',
@@ -48,6 +54,7 @@ parser.add_argument('--sparsity-reg', type=float, default=4e-6, metavar='S',
 parser.add_argument('--weight-reg', type=float, default=0.0, metavar='S',
                     help='weight regularization on the input filters ('
                          'default: 0.0)')
+
 parser.add_argument('--block-size', type=int, default=1024, metavar='N',
                     help='length of one instance in batch (default: 1024)')
 parser.add_argument('--n-bins', type=int, default=120, metavar='B',
@@ -59,11 +66,14 @@ parser.add_argument('--fmin', type=float, default=65.4, metavar='F',
                     help='minimum frequency for CQT (default: 65.4)')
 parser.add_argument('--hop_length', type=int, default=448, metavar='L',
                     help='hop length for CQT (default: 448)')
+
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--plot-interval', type=int, default=500, metavar='I',
                     help='how many epochs to wait before plotting network '
                          'status (default: 50)')
+parser.add_argument('--refresh-cache', action="store_true", default=False,
+                    help='reload and preprocess data')
 
 args = parser.parse_args()
 args.cuda = torch.cuda.is_available()
@@ -102,7 +112,9 @@ def transp(x, shift):
     return torch.cat([x[:, :, :, abs(shift):], pad], dim=3)
 
 
-model = C_GAE()
+model = C_GAE(kernel_size=(args.context_length, args.n_bins),
+              factors=args.n_factors, mapping=args.n_mapping)
+
 if args.cuda:
     model.cuda()
 
