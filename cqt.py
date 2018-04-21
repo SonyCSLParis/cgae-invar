@@ -23,6 +23,7 @@ from pickle import UnpicklingError
 
 LOGGER = logging.getLogger(__name__)
 
+
 def save_pyc_bz(data, fn):
     """
     Saves data to file (bz2 compressed)
@@ -130,8 +131,8 @@ class CQT(data.Dataset):
     def __init__(self, filelist, trg_shift=1, block_size=1024,
                  n_bins=120, bins_per_octave=24, fmin=65.4, hop_length=448,
                  convolutional=True, refresh_cache=False,
-                 cache_fn = "cqt_cache.pyc.bz",
-                 allow_diff_shapes=False):
+                 cache_fn="cqt_cache.pyc.bz",
+                 allow_diff_shapes=False, padded=False):
         """
         Constructor for Constant-Q-Transform dataset
 
@@ -151,16 +152,20 @@ class CQT(data.Dataset):
         self.hop_length = hop_length
         self.convolutional = convolutional
         self.allow_diff_shapes = allow_diff_shapes
-        self.data_cqt = cached(cache_fn, self.files_to_cqt, (filelist,),
-                               refresh_cache=refresh_cache)
+        self.padded = padded
+        self.data_cqt, self.lengths = cached(cache_fn,
+                                             self.files_to_cqt, (filelist,),
+                                             refresh_cache=refresh_cache)
 
     def __getitem__(self, index):
         if self.convolutional:
             x = torch.FloatTensor(self.data_cqt[index][0][None, :, :])
             y = torch.FloatTensor(self.data_cqt[index][1][None, :, :])
-            return x,y
-        return torch.FloatTensor(self.data_cqt[index][0]), \
-               torch.FloatTensor(self.data_cqt[index][1])
+        else:
+            x = torch.FloatTensor(self.data_cqt[index][0])
+            y = torch.FloatTensor(self.data_cqt[index][1])
+
+        return x, y
 
     def __len__(self):
         return len(self.data_cqt)
@@ -175,6 +180,8 @@ class CQT(data.Dataset):
         :return: CQT representation in equally sized blocks
         """
         data_cqt = []
+        lengths = []
+        max_length = 0
         for file in filelist:
             file = file.strip('\n')
             print(f"loading file {file}")
@@ -186,21 +193,46 @@ class CQT(data.Dataset):
             cqt = np.transpose(librosa.magphase(cqt)[0])
             cqt = contrast_normalize(cqt)
 
-            # pad to create input and target
-            cqt_x = np.concatenate((cqt[:self.trg_shift], cqt))
-            cqt_y = np.concatenate((cqt, cqt[-self.trg_shift:]))
+            if self.trg_shift is not 0:
+                # pad to create input and target
+                cqt_x = np.concatenate((cqt[:self.trg_shift], cqt))
+                cqt_y = np.concatenate((cqt, cqt[-self.trg_shift:]))
+            else:
+                cqt_x = cqt_y = cqt
+
+            if len(cqt) > max_length:
+                max_length = len(cqt)
 
             for i in range(0, len(cqt), self.block_size):
-                if not self.allow_diff_shapes and i + self.block_size > \
+                if not self.allow_diff_shapes and i + self.block_size is not \
                         len(cqt):
                     break
+
+                cqt_x_block = cqt_x[i:i + self.block_size]
+                cqt_y_block = cqt_y[i:i + self.block_size]
+
+                length = len(cqt_x_block)
+                lengths.append(length)
+
+                if self.padded:
+                    diff = self.block_size - length
+                    if diff > 0:
+                        pad = np.zeros((diff, *cqt_x_block.shape[1:]))
+                        cqt_x_block = np.concatenate((cqt_x_block, pad))
+                        cqt_y_block = np.concatenate((cqt_y_block, pad))
+
                 if self.convolutional:
-                    data_cqt.append([cqt_x[i:i+self.block_size],
-                                     cqt_y[i:i+self.block_size]])
+                    data_cqt.append([cqt_x_block, cqt_y_block])
                 else:
                     data_cqt.append([
-                                    np.reshape(cqt_x[i:i+self.block_size], -1),
-                                    np.reshape(cqt_y[i:i+self.block_size], -1)]
-                                    )
+                        np.reshape(cqt_x_block, -1),
+                        np.reshape(cqt_y_block, -1)]
+                    )
 
-        return data_cqt
+        if len(data_cqt) == 0:
+            LOGGER.warning("No data added to CQT Dataset! Is blocksize too high?")
+
+        if max_length < self.block_size and self.padded:
+            LOGGER.warning(f"Consider reducing block size of {self.block_size} to {max_length}!")
+
+        return data_cqt, lengths
