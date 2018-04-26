@@ -14,8 +14,7 @@ Stefan Lattner¹², Maarten Grachten¹, Gerhard Widmer¹, 2018<br/>
 The method introduced in the paper uses an n-gram approach, whereas the 
 implementation provided here employs convolution in time.
 
-Pre-trained model parameters can be used as described [here]
-(#convert-audio-files-to-invariant-features). However, we encourage the user
+Pre-trained model parameters can be used as described [here](#convert-audio-files-to-invariant-features). However, we encourage the user
 to train the model on problem-specific data, and to experiment with different 
 training settings herself.
 
