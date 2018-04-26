@@ -53,6 +53,7 @@ data/audio2.wav
 data/audio3.wav
 ```
 We recommend ~2-3 hours of music for training with the default parameters.
+
 2. **Start training** using the following command
 (choose a *run_keyword*, add `--help` to list all parameters):
 ```
