@@ -68,6 +68,10 @@ An experiment folder `output/run_keyword` will be created, where all files regar
 ```
   python convert.py filelist.txt run_keyword
 ```
+In order to **use pre-trained parameters**, run
+```
+  python convert.py filelist.txt pretrained
+```
 
 ## Acknowledgements
 This research was supported by the EU FP7 (project Lrn2Cre8, FET grant number 610859), and the European Research Council (project CON ESPRESSIONE, ERC grant number 670035).
