@@ -30,10 +30,11 @@ class C_GAE(nn.Module):
         layer
         """
         super(C_GAE, self).__init__()
-        assert kernel_size[0] % 2 == 1, "kernel_size[0] has to be an odd number"
+        assert kernel_size[
+                   0] % 2 == 1, "kernel_size[0] has to be an odd number"
         self.context_length = kernel_size[0]
         self.conv_x = nn.Conv2d(1, factors, kernel_size=kernel_size,
-                                padding=(kernel_size[0]//2, 0), bias=False)
+                                padding=(kernel_size[0] // 2, 0), bias=False)
         self.bias_x = nn.Parameter(torch.zeros(kernel_size[1]))
         self.conv_y = nn.Conv2d(1, factors, kernel_size=(1, kernel_size[1]),
                                 padding=(0, 0), bias=False)

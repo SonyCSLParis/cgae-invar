@@ -230,9 +230,11 @@ class CQT(data.Dataset):
                     )
 
         if len(data_cqt) == 0:
-            LOGGER.warning("No data added to CQT Dataset! Is blocksize too high?")
+            LOGGER.warning(
+                "No data added to CQT Dataset! Is blocksize too high?")
 
         if max_length < self.block_size and self.padded:
-            LOGGER.warning(f"Consider reducing block size of {self.block_size} to {max_length}!")
+            LOGGER.warning(
+                f"Consider reducing block size of {self.block_size} to {max_length}!")
 
         return data_cqt, lengths

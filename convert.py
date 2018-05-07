@@ -44,9 +44,12 @@ if not os.path.exists(out_dir):
 
 # Load the model
 model = torch.load(os.path.join(out_dir, 'model.save'))
-#model = C_GAE()
+# model = C_GAE()
 if args.cuda:
     model.cuda()
+
+model.eval()
+
 
 def get_trg_shift_dist():
     return 1 + model.context_length // 2
@@ -57,7 +60,6 @@ file_loader = torch.utils.data.DataLoader(
         allow_diff_shapes=True,
         convolutional=True, refresh_cache=True, cache_fn="trans.pyc.bz"),
     batch_size=1, shuffle=True, **kwargs)
-
 
 
 def save_invariant():
@@ -76,10 +78,9 @@ def save_invariant():
         # calculate mapping of untransposed data
         m = model.mapping_(x, y)
 
-        out_fn = os.path.join(out_dir, filename+".invar.pyc.bz")
-        save_pyc_bz(np.transpose(to_numpy(m)[0,:,:,0]), out_fn)
+        out_fn = os.path.join(out_dir, filename + ".invar.pyc.bz")
+        save_pyc_bz(np.transpose(to_numpy(m)[0, :, :, 0]), out_fn)
         print(f"Written invariant representation to {out_fn}")
 
 
 save_invariant()
-

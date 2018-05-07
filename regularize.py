@@ -11,6 +11,7 @@ Austrian Research Institute for Artificial Intelligence, Vienna
 
 import torch
 
+
 def lee_loss(act):
     """
     Lee sparsity and selectivity regularization on hidden activations

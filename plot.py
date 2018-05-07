@@ -16,6 +16,7 @@ import os
 import numpy as np
 import numpy.ma as ma
 from matplotlib import use
+
 use('agg')
 
 import matplotlib.pyplot as plt
@@ -24,7 +25,6 @@ import PIL.Image
 from util import to_numpy, cuda_variable
 
 LOGGER = logging.getLogger(__name__)
-
 
 """ Specific C-GAE plotting functions """
 
@@ -68,7 +68,7 @@ def plot_mapping(model, x, y, epoch, out_dir):
     """
     # x = cuda_variable(batch[0][None,:,:,:])
     # y = cuda_variable(batch[1][None,:,:,:])
-    output = np.transpose(to_numpy(model.mapping_(x, y)), axes=(0,3,2,1))
+    output = np.transpose(to_numpy(model.mapping_(x, y)), axes=(0, 3, 2, 1))
     make_tiles(output, os.path.join(out_dir, f"mapping_ep{epoch}.png"))
 
 

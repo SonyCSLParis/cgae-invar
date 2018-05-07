@@ -149,8 +149,8 @@ def train(epoch):
 
         # transpose input and target, in order to enforce
         # transposition-invariance
-        shift = randint(-args.n_bins//2, args.n_bins//2)
-        x = F.dropout(x, .5, training=True)
+        shift = randint(-args.n_bins // 2, args.n_bins // 2)
+        x = F.dropout(x, .5)
         x_trans = transp(x, shift)
         y_trans = transp(y, shift)
 
@@ -186,8 +186,10 @@ def train(epoch):
 
 for epoch in range(1, args.epochs + 1):
     losses = train(epoch)
+    model.eval()
     print('Finished Epoch: {}/{} ({:.0f}%)\tLoss: {:.6f}'.format(
-          epoch, args.epochs+1, 100. * epoch / args.epochs+1, np.mean(losses)))
+        epoch, args.epochs + 1, 100. * epoch / args.epochs + 1,
+        np.mean(losses)))
     if epoch % args.plot_interval == 1:
         for batch_idx, (x, y) in enumerate(train_loader):
             if batch_idx == 0:
