@@ -8,6 +8,9 @@ PyTorch implementation of the sequential Gated Autoencoder proposed in
 Audio*<br/>
 Stefan Lattner¹², Maarten Grachten¹, Gerhard Widmer¹, 2018<br/>
 
+*Audio-to-Score Alignment using Transposition-Invariant Features*<br/>
+Andreas Arzt¹, Stefan Lattner¹², 2018<br/>
+
 *¹Institute for Computational Perception, JKU Linz*<br/> 
 *²Sony CSL Paris*<br/>
 
