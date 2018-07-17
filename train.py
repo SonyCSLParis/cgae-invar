@@ -133,7 +133,7 @@ train_loader = torch.utils.data.DataLoader(
     batch_size=args.batch_size, shuffle=True, **kwargs)
 
 
-def train(epoch):
+def train():
     """
     Trains the C-GAE for one epoch
 
@@ -174,7 +174,7 @@ def train(epoch):
         loss.backward()
         optimizer.step()
 
-        losses.append(loss.data[0])
+        losses.append(loss.item())
 
         # restrict to (small) common norm
         model.set_to_norm(0.4)
@@ -185,7 +185,7 @@ def train(epoch):
 # Train and plot intermediate results
 
 for epoch in range(1, args.epochs + 1):
-    losses = train(epoch)
+    losses = train()
     model.eval()
     print('Finished Epoch: {}/{} ({:.0f}%)\tLoss: {:.6f}'.format(
         epoch, args.epochs + 1, 100. * epoch / args.epochs + 1,
