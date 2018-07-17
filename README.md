@@ -8,10 +8,13 @@ PyTorch implementation of the sequential Gated Autoencoder proposed in
 Audio*<br/>
 Stefan Lattner¹², Maarten Grachten¹, Gerhard Widmer¹, 2018<br/>
 
-*¹Institute for Computational Perception, JKU Linz*<br/> 
+*Audio-to-Score Alignment using Transposition-Invariant Features*<br/>
+Andreas Arzt¹, Stefan Lattner¹², 2018<br/>
+
+*¹Institute of Computational Perception, JKU Linz*<br/> 
 *²Sony CSL Paris*<br/>
 
-The method introduced in the paper uses an n-gram approach, whereas the 
+The method introduced in the papers is based on n-grams for learning the intervals between input and target, whereas the 
 implementation provided here employs convolution in time.
 
 Pre-trained model parameters can be used as described [here](#convert-audio-files-to-invariant-features). However, we encourage the user
@@ -33,6 +36,7 @@ training settings herself.
 * Numpy
 
 **Install PyTorch** following [this link](http://www.pytorch.org).
+
 To install (update) all other requirements using **Conda**, run:
 ```
   conda install --yes --file requirements.txt
@@ -65,7 +69,7 @@ An experiment folder `output/run_keyword` will be created, where all files regar
 ## Convert audio files to invariant features
 
 1. **Create a text file** (e.g. filelist.txt) which lists audio files to convert (see Section [Training](#training)).
-2. **Convert files**, run:
+2. **Convert files**, run (using the same *run_keyword* as in the training):
 ```
   python convert.py filelist.txt run_keyword
 ```
@@ -73,6 +77,8 @@ In order to **use pre-trained parameters**, run
 ```
   python convert.py filelist.txt pretrained
 ```
+The converted files will be saved (bz2 compressed pickle) in the experiment folder `output/run_keyword`.
+A method to load the compressed files as numpy arrays can be found in cqt.py -> load_pyc_bz(filename)
 
 ## Acknowledgements
 This research was supported by the EU FP7 (project Lrn2Cre8, FET grant number 610859), and the European Research Council (project CON ESPRESSIONE, ERC grant number 670035).
