@@ -28,6 +28,19 @@ parser.add_argument('filelist', type=str, default="",
                          'conversion')
 parser.add_argument('run_keyword', type=str, default="experiment1",
                     help='keyword used for input path')
+parser.add_argument('--block-size', type=int, default=1024, metavar='N',
+                    help='length of one instance in batch (default: 1024)')
+parser.add_argument('--n-bins', type=int, default=120, metavar='B',
+                    help='number of frequency bins for CQT (default: 120)')
+parser.add_argument('--bins-per-oct', type=int, default=24, metavar='B',
+                    help='number of frequency bins per octave for CQT ('
+                         'default: 24)')
+parser.add_argument('--fmin', type=float, default=65.4, metavar='F',
+                    help='minimum frequency for CQT (default: 65.4)')
+parser.add_argument('--hop_length', type=int, default=448, metavar='L',
+                    help='hop length for CQT (default: 448)')
+parser.add_argument('--refresh-cache', action="store_true", default=False,
+                    help='reload and preprocess data')
 
 args = parser.parse_args()
 args.cuda = torch.cuda.is_available()
@@ -57,8 +70,11 @@ def get_trg_shift_dist():
 
 file_loader = torch.utils.data.DataLoader(
     CQT(files, trg_shift=get_trg_shift_dist(), block_size=sys.maxsize,
-        allow_diff_shapes=True,
-        convolutional=True, refresh_cache=True, cache_fn="trans.pyc.bz"),
+        allow_diff_shapes=True, n_bins=args.n_bins,
+        bins_per_octave=args.bins_per_oct,
+        fmin=args.fmin, hop_length=args.hop_length,
+        convolutional=True, refresh_cache=args.refresh_cache,
+        cache_fn="trans.pyc.bz"),
     batch_size=1, shuffle=True, **kwargs)
 
 
