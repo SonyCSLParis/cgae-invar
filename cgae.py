@@ -73,13 +73,13 @@ class C_GAE(nn.Module):
         shape_x = self.conv_x.weight.size()
         conv_x_reshape = self.conv_x.weight.view(shape_x[0], -1)
         norms_x = ((conv_x_reshape ** 2).sum(1) ** .5).view(-1, 1)
-        conv_x_reshape /= norms_x
+        conv_x_reshape = conv_x_reshape / norms_x
         weight_x_new = to_numpy(conv_x_reshape.view(*shape_x)) * val
         self.conv_x.weight.data = cuda_tensor(weight_x_new)
 
         shape_y = self.conv_y.weight.size()
         conv_y_reshape = self.conv_y.weight.view(shape_y[0], -1)
         norms_y = ((conv_y_reshape ** 2).sum(1) ** .5).view(-1, 1)
-        conv_y_reshape /= norms_y
+        conv_y_reshape = conv_y_reshape / norms_y
         weight_y_new = to_numpy(conv_y_reshape.view(*shape_y)) * val
         self.conv_y.weight.data = cuda_tensor(weight_y_new)
