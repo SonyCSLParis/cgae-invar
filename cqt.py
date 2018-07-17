@@ -13,6 +13,8 @@ import bz2
 import logging
 import os
 import pickle
+from functools import partial
+from multiprocessing.pool import Pool
 
 import librosa
 import numpy as np
@@ -109,7 +111,7 @@ def cached(cache_fn, func, args=(), kwargs={}, refresh_cache=False):
     return result
 
 
-def contrast_normalize(x, axis=1):
+def standardize(x, axis=1):
     """
     Performs contrast normalization (zero mean, unit variance)
     along the given axis.
@@ -131,8 +133,10 @@ class CQT(data.Dataset):
     def __init__(self, filelist, trg_shift=1, block_size=1024,
                  n_bins=120, bins_per_octave=24, fmin=65.4, hop_length=448,
                  convolutional=True, refresh_cache=False,
-                 cache_fn="cqt_cache.pyc.bz",
-                 allow_diff_shapes=False, padded=False):
+                 cache_fn="cqt_cache.pyc.bz", one_shot=False,
+                 standardize=True,
+                 allow_diff_shapes=False, padded=False,
+                 return_lengths=False, return_labels=False, workers=None):
         """
         Constructor for Constant-Q-Transform dataset
 
@@ -153,9 +157,19 @@ class CQT(data.Dataset):
         self.convolutional = convolutional
         self.allow_diff_shapes = allow_diff_shapes
         self.padded = padded
-        self.data_cqt, self.lengths = cached(cache_fn,
-                                             self.files_to_cqt, (filelist,),
-                                             refresh_cache=refresh_cache)
+        self.one_shot = one_shot
+        self.return_lengths = return_lengths
+        self.return_labels = return_labels
+        self.standardize = standardize
+
+        if workers == None or workers > 1:
+            process = partial(self.files_to_cqt_mult, filelist, workers)
+        else:
+            process = partial(self.files_to_cqt, filelist)
+
+        self.data_cqt, self.lengths, self.labels = cached(cache_fn,
+                                                          process,
+                                                          refresh_cache=refresh_cache)
 
     def __getitem__(self, index):
         if self.convolutional:
@@ -165,10 +179,32 @@ class CQT(data.Dataset):
             x = torch.FloatTensor(self.data_cqt[index][0])
             y = torch.FloatTensor(self.data_cqt[index][1])
 
-        return x, y
+        result = [x, y]
+        if self.return_lengths:
+            result = result + [self.lengths[index]]
+        if self.return_labels:
+            result = result + [self.labels[index]]
+
+        return result
 
     def __len__(self):
         return len(self.data_cqt)
+
+    def files_to_cqt_mult(self, filelist, workers):
+        # create workers
+        pool = Pool(processes=workers)
+        results = pool.map(self.process_file, filelist)
+
+        data_cqt = []
+        lengths = []
+        labels = []
+
+        for d, le, la in results:
+            data_cqt.extend(d)
+            lengths.extend(le)
+            labels.extend(la)
+
+        return data_cqt, lengths, np.array(labels)
 
     def files_to_cqt(self, filelist):
         """
@@ -181,60 +217,72 @@ class CQT(data.Dataset):
         """
         data_cqt = []
         lengths = []
-        max_length = 0
+        labels = []
         for file in filelist:
-            file = file.strip('\n')
-            print(f"loading file {file}")
-            audio = librosa.load(file)
-            print(f"transforming {file} to cqt")
-            cqt = librosa.cqt(audio[0], n_bins=self.n_bins,
-                              bins_per_octave=self.bins_per_octave,
-                              fmin=self.fmin, hop_length=self.hop_length)
-            cqt = np.transpose(librosa.magphase(cqt)[0])
-            cqt = contrast_normalize(cqt)
-
-            if self.trg_shift is not 0:
-                # pad to create input and target
-                cqt_x = np.concatenate((cqt[:self.trg_shift], cqt))
-                cqt_y = np.concatenate((cqt, cqt[-self.trg_shift:]))
-            else:
-                cqt_x = cqt_y = cqt
-
-            if len(cqt) > max_length:
-                max_length = len(cqt)
-
-            for i in range(0, len(cqt), self.block_size):
-                if not self.allow_diff_shapes and i + self.block_size > \
-                        len(cqt):
-                    break
-
-                cqt_x_block = cqt_x[i:i + self.block_size]
-                cqt_y_block = cqt_y[i:i + self.block_size]
-
-                length = len(cqt_x_block)
-                lengths.append(length)
-
-                if self.padded:
-                    diff = self.block_size - length
-                    if diff > 0:
-                        pad = np.zeros((diff, *cqt_x_block.shape[1:]))
-                        cqt_x_block = np.concatenate((cqt_x_block, pad))
-                        cqt_y_block = np.concatenate((cqt_y_block, pad))
-
-                if self.convolutional:
-                    data_cqt.append([cqt_x_block, cqt_y_block])
-                else:
-                    data_cqt.append([
-                        np.reshape(cqt_x_block, -1),
-                        np.reshape(cqt_y_block, -1)]
-                    )
+            data_cqt_, lengths_, labels_ = self.process_file(file)
+            data_cqt.extend(data_cqt_)
+            lengths.extend(lengths_)
+            labels.extend(labels_)
 
         if len(data_cqt) == 0:
             LOGGER.warning(
                 "No data added to CQT Dataset! Is blocksize too high?")
 
-        if max_length < self.block_size and self.padded:
-            LOGGER.warning(
-                f"Consider reducing block size of {self.block_size} to {max_length}!")
+        return data_cqt, lengths, np.array(labels)
 
-        return data_cqt, lengths
+    def process_file(self, file):
+        file = file.strip('\n')
+        print(f"loading file {file}")
+        audio = librosa.load(file, sr=None)
+        print(f"transforming {file} to cqt")
+        cqt = librosa.cqt(audio[0], n_bins=self.n_bins,
+                          bins_per_octave=self.bins_per_octave,
+                          fmin=self.fmin, hop_length=self.hop_length)
+        cqt = np.transpose(librosa.magphase(cqt)[0])
+
+        if self.standardize:
+            cqt = standardize(cqt)
+
+        data_cqt = []
+        lengths = []
+        labels = []
+
+        if self.trg_shift is not 0:
+            # pad to create input and target
+            cqt_x = np.concatenate((cqt[:self.trg_shift], cqt))
+            cqt_y = np.concatenate((cqt, cqt[-self.trg_shift:]))
+        else:
+            cqt_x = cqt_y = cqt
+
+        for i in range(0, len(cqt), self.block_size):
+            if self.one_shot and i > 0:
+                break
+            if not self.allow_diff_shapes and i + self.block_size < \
+                    len(cqt):
+                break
+
+            cqt_x_block = cqt_x[i:i + self.block_size]
+            cqt_y_block = cqt_y[i:i + self.block_size]
+
+            length = len(cqt_x_block)
+            lengths.append(length)
+
+            if self.padded:
+                diff = self.block_size - length
+                if diff > 0:
+                    pad = np.ones((diff, *cqt_x_block.shape[1:])) * \
+                          cqt_x_block[-1]
+                    cqt_x_block = np.concatenate((cqt_x_block, pad))
+                    cqt_y_block = np.concatenate((cqt_y_block, pad))
+
+            if self.convolutional:
+                data_cqt.append([cqt_x_block, cqt_y_block])
+            else:
+                data_cqt.append([
+                    np.reshape(cqt_x_block, -1),
+                    np.reshape(cqt_y_block, -1)]
+                )
+
+            labels.append(os.path.basename(file))
+
+        return data_cqt, lengths, labels
