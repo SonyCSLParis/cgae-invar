@@ -147,6 +147,14 @@ class CQT(data.Dataset):
         :param convolutional:   instance dim=1 or instance dim=3
         :param refresh_cache:   when True recalculate and save to cache file
                                 when False loads from cache file when available
+        :param one_shot:        if True, every file is at most one instance
+                                of at most block_size length
+        :param standardize:     if True, every time step will be standardized
+        :param allow_diff_shapes if True, instances can have different lengths
+        :param padded           instances smaller block_size, get zero padded
+        :param return_labels    returns labels
+        :param return_lengths   returns lengths
+        :param workers          if None, all processors are used
         """
         self.trg_shift = trg_shift
         self.block_size = block_size
