@@ -15,6 +15,7 @@ import argparse
 
 import sys
 import torch
+import torch.nn.functional as F
 
 from cqt import CQT, save_pyc_bz
 from plot import *
@@ -90,6 +91,8 @@ def save_invariant():
 
         x = cuda_variable(x)
         y = cuda_variable(y)
+
+        x = F.dropout(x, training=False)
 
         # calculate mapping of untransposed data
         m = model.mapping_(x, y)
